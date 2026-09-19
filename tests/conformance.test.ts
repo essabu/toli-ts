@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -22,8 +22,21 @@ import { parseReading } from '../src/reading.js'
  * the only thing that keeps "confirm" meaning the same in TypeScript and in
  * PHP — a language-specific test proves a language-specific belief.
  */
+/**
+ * The shared fixtures, wherever this package is sitting.
+ *
+ * Two layouts must work: the monorepo, where spec/ is one level above the
+ * language folder, and the published mirror, where it was vendored at the root.
+ * A hard-coded path passes in one and fails in the other — which is exactly
+ * what happened the first time a mirror was cloned.
+ */
 function spec(file: string): Record<string, any> {
-  return JSON.parse(readFileSync(join(__dirname, '../../spec/conformance', file), 'utf8'))
+  for (const base of ['../spec', '../../spec']) {
+    const path = join(__dirname, base, 'conformance', file)
+    if (existsSync(path)) return JSON.parse(readFileSync(path, 'utf8'))
+  }
+
+  throw new Error(`Conformance fixtures not found: ${file}`)
 }
 
 /** A scripted fetch: hand it the responses, read back the requests. */
